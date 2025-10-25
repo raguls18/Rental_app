@@ -1,0 +1,31 @@
+{
+  "buildCommand": "echo 'Static site - no build needed'",
+  "outputDirectory": ".",
+  "framework": "static",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/$1"
+    },
+    {
+      "source": "/property-details",
+      "destination": "/property-details.html"
+    },
+    {
+      "source": "/seeker-profile",
+      "destination": "/seeker-profile.html"
+    },
+    {
+      "source": "/favorites",
+      "destination": "/favoritesseeker.html"
+    },
+    {
+      "source": "/add-property",
+      "destination": "/add-property.html"
+    },
+    {
+      "source": "/owner-dashboard",
+      "destination": "/owner-dashboard.html"
+    }
+  ]
+}
