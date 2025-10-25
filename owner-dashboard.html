@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Owner Dashboard - RentHouse</title>
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+</head>
+<body>
+  <div class="dashboard-container">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2><i class="fas fa-home"></i> RentHouse</h2>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="owner-dashboard.html" class="nav-link active">
+          <i class="fas fa-tachometer-alt"></i> Dashboard
+        </a>
+        <a href="my-properties.html" class="nav-link">
+          <i class="fas fa-building"></i> My Properties
+        </a>
+        <a href="add-property.html" class="nav-link">
+          <i class="fas fa-plus"></i> Add Property
+        </a>
+        <a href="owner-profile.html" class="nav-link">
+          <i class="fas fa-user"></i> Profile
+        </a>
+        <a href="#" onclick="logout()" class="nav-link">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <header class="dashboard-header">
+        <h1>Welcome, <span id="owner-name">Owner</span></h1>
+      </header>
+      <section class="stats-grid">
+        <div class="stat-card">
+          <i class="fas fa-building"></i>
+          <h3 id="total-properties">0</h3>
+          <p>Total Properties</p>
+        </div>
+        <div class="stat-card">
+          <i class="fas fa-eye"></i>
+          <h3 id="total-views">0</h3>
+          <p>Total Views</p>
+        </div>
+        <div class="stat-card">
+          <i class="fas fa-phone"></i>
+          <h3 id="total-inquiries">0</h3>
+          <p>Inquiries</p>
+        </div>
+      </section>
+      <section class="recent-properties">
+        <div class="dashboard-header">
+            <h2>Recent Properties</h2>
+            <a href="my-properties.html" class="btn-view-all">View All</a>
+        </div>
+        <div id="recent-properties-list" class="properties-grid">
+          <div class="loading">Loading recent properties...</div>
+        </div>
+      </section>
+    </main>
+  </div>
+    
+  <script type="module">
+    import { initializeAuth, getCurrentUser, logout } from './js/firebase-auth.js';
+    import { db } from './js/firebase-config.js';
+    import { collection, query, where, getDocs, getDoc, doc, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-firestore.js";
+
+    async function loadDashboardData() {
+        await initializeAuth();
+        const user = getCurrentUser();
+
+        if (!user) {
+            window.location.href = 'login.html';
+            return;
+        }
+
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+            document.getElementById('owner-name').textContent = userDocSnap.data().fullname || 'Owner';
+        }
+
+        const propertiesRef = collection(db, 'properties');
+        const q = query(
+            propertiesRef, 
+            where('ownerId', '==', user.uid),
+            orderBy('createdAt', 'desc')
+        );
+        
+        const querySnapshot = await getDocs(q);
+        document.getElementById('total-properties').textContent = querySnapshot.size;
+        const recentProperties = [];
+        querySnapshot.forEach(doc => {
+            if(recentProperties.length < 3) {
+                recentProperties.push({ id: doc.id, ...doc.data() });
+            }
+        });
+        displayRecentProperties(recentProperties);
+    }
+
+    function displayRecentProperties(properties) {
+        const container = document.getElementById('recent-properties-list');
+        if (properties.length === 0) {
+            container.innerHTML = '<p>No properties found. <a href="add-property.html">Add one now!</a></p>';
+            return;
+        }
+        container.innerHTML = properties.map(prop => `
+            <div class="property-card">
+                <div class="property-image" style="background-image: url('${prop.images?.[0] || ''}')">
+                    <div class="property-price">₹${(prop.rent || 0).toLocaleString()}/month</div>
+                </div>
+                <div class="property-details">
+                    <h3>${prop.title}</h3>
+                    <p class="property-location"><i class="fas fa-map-marker-alt"></i> ${prop.address}</p>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // This line makes the imported logout function available to the HTML button
+    window.logout = logout;
+
+    document.addEventListener('DOMContentLoaded', loadDashboardData);
+  </script>
+</body>
+</html>

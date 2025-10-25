@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - RentHouse</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/seeker-profile.css">
+</head>
+<body>
+    <header class="main-header">
+        <div class="container">
+            <div class="header-content">
+                <h1 class="logo"><i class="fas fa-home"></i> RentHouse</h1>
+                <nav class="main-nav">
+                    <a href="seeker.html"><i class="fas fa-search"></i> Search</a>
+                    <a href="favoritesseeker.html"><i class="fas fa-heart"></i> Favorites</a>
+                    <a href="seeker-profile.html" class="active"><i class="fas fa-user-circle"></i> Profile</a>
+                    <a href="#" id="nav-logout-btn" class="btn-logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="profile-wrapper">
+            <!-- Profile Section -->
+            <section class="profile-section">
+                <div class="profile-header">
+                    <div class="profile-avatar">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <div class="profile-info">
+                        <h1 id="profile-name">Loading...</h1>
+                        <p id="profile-email" class="profile-email">Loading...</p>
+                        <p id="profile-phone" class="profile-phone"><i class="fas fa-phone"></i> Loading...</p>
+                    </div>
+                    <button id="edit-profile-btn" class="btn-edit"><i class="fas fa-edit"></i> Edit Profile</button>
+                </div>
+
+                <div class="profile-stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="favorites-count">0</div>
+                        <div class="stat-label">Favorites</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="searches-count">0</div>
+                        <div class="stat-label">Saved Searches</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="inquiries-count">0</div>
+                        <div class="stat-label">Inquiries</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Saved Searches Section -->
+            <section class="saved-searches-section">
+                <h2><i class="fas fa-bookmark"></i> Saved Searches</h2>
+                <div id="saved-searches-list" class="saved-searches-list">
+                    <p class="empty-state">No saved searches yet. Start searching to save your preferences!</p>
+                </div>
+            </section>
+
+            <!-- Recent Favorites Section -->
+            <section class="recent-favorites-section">
+                <h2><i class="fas fa-heart"></i> Recent Favorites</h2>
+                <div id="recent-favorites-grid" class="properties-grid">
+                    <p class="empty-state">No favorites yet. Add properties to your favorites!</p>
+                </div>
+            </section>
+
+            <!-- Preferences Section -->
+            <section class="preferences-section">
+                <h2><i class="fas fa-sliders-h"></i> Search Preferences</h2>
+                <div class="preferences-grid">
+                    <div class="preference-item">
+                        <label>Preferred Property Type</label>
+                        <select id="pref-property-type">
+                            <option value="">Any</option>
+                            <option value="Apartment">Apartment</option>
+                            <option value="House">House</option>
+                            <option value="Villa">Villa</option>
+                            <option value="Studio">Studio</option>
+                        </select>
+                    </div>
+                    <div class="preference-item">
+                        <label>Preferred Bedrooms</label>
+                        <select id="pref-bedrooms">
+                            <option value="">Any</option>
+                            <option value="1">1+ BHK</option>
+                            <option value="2">2+ BHK</option>
+                            <option value="3">3+ BHK</option>
+                            <option value="4">4+ BHK</option>
+                        </select>
+                    </div>
+                    <div class="preference-item">
+                        <label>Budget Range</label>
+                        <select id="pref-budget">
+                            <option value="">Any</option>
+                            <option value="0-10000">Up to ₹10,000</option>
+                            <option value="10000-20000">₹10,000 - ₹20,000</option>
+                            <option value="20000-35000">₹20,000 - ₹35,000</option>
+                            <option value="35000-50000">₹35,000 - ₹50,000</option>
+                            <option value="50000-max">Above ₹50,000</option>
+                        </select>
+                    </div>
+                    <div class="preference-item">
+                        <label>Preferred Location</label>
+                        <input type="text" id="pref-location" placeholder="City, Area, or Pincode">
+                    </div>
+                </div>
+                <button id="save-preferences-btn" class="btn-primary"><i class="fas fa-save"></i> Save Preferences</button>
+            </section>
+
+            <!-- Account Settings Section -->
+            <section class="account-settings-section">
+                <h2><i class="fas fa-cog"></i> Account Settings</h2>
+                <div class="settings-list">
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Email Notifications</h3>
+                            <p>Receive updates about new properties matching your preferences</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="email-notifications" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Price Alerts</h3>
+                            <p>Get notified when prices drop on your favorite properties</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="price-alerts" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Danger Zone -->
+            <section class="danger-zone-section">
+                <h2><i class="fas fa-exclamation-triangle"></i> Danger Zone</h2>
+                <button id="delete-account-btn" class="btn-danger"><i class="fas fa-trash"></i> Delete Account</button>
+            </section>
+        </div>
+    </main>
+
+    <!-- Edit Profile Modal -->
+    <div id="edit-profile-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Profile</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="edit-name" placeholder="Your full name">
+                </div>
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="edit-phone" placeholder="Your phone number">
+                </div>
+                <div class="form-group">
+                    <label>Bio</label>
+                    <textarea id="edit-bio" placeholder="Tell us about yourself" rows="4"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary modal-close-btn">Cancel</button>
+                <button id="save-profile-btn" class="btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/seeker-profile.js"></script>
+</body>
+</html>

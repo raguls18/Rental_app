@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Add Property - RentHouse</title>
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="./css/add Property.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+</head>
+<body>
+  <div class="dashboard-container">
+    <aside class="sidebar">
+      <div class="sidebar-header"><h2><i class="fas fa-home"></i> RentHouse</h2></div>
+      <nav class="sidebar-nav">
+        <a href="owner-dashboard.html" class="nav-link"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+        <a href="my-properties.html" class="nav-link"><i class="fas fa-building"></i> My Properties</a>
+        <a href="add-property.html" class="nav-link active"><i class="fas fa-plus"></i> Add Property</a>
+        <a href="owner-profile.html" class="nav-link"><i class="fas fa-user"></i> Profile</a>
+        <a href="#" onclick="logout()" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <header class="dashboard-header">
+        <h1>Add New Property</h1>
+      </header>
+      <form id="property-form" class="property-form">
+        <div class="form-group">
+          <label for="title">Property Title</label>
+          <input type="text" id="title" required />
+        </div>
+        <div class="form-group">
+          <label for="type">Property Type</label>
+          <select id="type" required>
+            <option value="">Select Type</option>
+            <option value="apartment">Apartment</option>
+            <option value="house">House</option>
+            <option value="villa">Villa</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="rent">Rent Amount (₹)</label>
+          <input type="number" id="rent" required />
+        </div>
+        <div class="form-group">
+          <label for="bedrooms">Bedrooms</label>
+          <input type="number" id="bedrooms" required min="1" />
+        </div>
+        <div class="form-group">
+          <label for="phone">Contact Mobile</label>
+          <input type="tel" id="phone" required placeholder="e.g., 9876543210" />
+        </div>
+        <div class="form-group">
+          <label for="email">Contact Email</label>
+          <input type="email" id="email" required placeholder="e.g., contact@example.com" />
+        </div>
+        <div class="form-group">
+          <label for="address">Address</label>
+          <textarea id="address" rows="3" required></textarea>
+        </div>
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea id="description" rows="5" required></textarea>
+        </div>
+        <div class="form-group">
+          <label for="images">Property Images</label>
+          <input type="file" id="images" multiple accept="image/*" required />
+          <div id="image-preview" class="image-preview"></div>
+        </div>
+        <div class="form-group">
+          <label for="video">Property Video (optional)</label>
+          <input type="file" id="video" accept="video/*" />
+        </div>
+        <button type="submit" class="btn-submit" id="submit-btn">Add Property</button>
+      </form>
+    </main>
+  </div>
+
+ <script type="module">
+    // ----------------------------------------------
+    // 1. ALL IMPORTS MUST BE AT THE TOP
+    // ----------------------------------------------
+    import { initializeAuth, getCurrentUser, logout } from './js/firebase-auth.js';
+    import { db } from './js/firebase-config.js';
+    import { collection, addDoc, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.3.1/firebase-firestore.js';
+
+    const cloudName = 'dly1vm7gz'; 
+    const unsignedUploadPreset = 'ragul@123';
+
+    // ----------------------------------------------
+    // 2. SETUP AND UTILITY FUNCTIONS
+    // ----------------------------------------------
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeAuth();
+    });
+
+    // Function to handle file uploads to Cloudinary
+    async function uploadFileToCloudinary(file, resourceType = 'auto') {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', unsignedUploadPreset);
+        
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Cloudinary Error: ${errorData.error?.message || 'Upload failed'}`);
+        }
+        
+        const data = await response.json();
+        return data.secure_url;
+    }
+
+    // Image preview logic
+    document.getElementById('images').addEventListener('change', (e) => {
+        const preview = document.getElementById('image-preview');
+        preview.innerHTML = '';
+        for (const file of e.target.files) {
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+            img.onload = () => URL.revokeObjectURL(img.src);
+            preview.appendChild(img);
+        }
+    });
+
+    // ----------------------------------------------
+    // 3. MAIN FORM SUBMISSION HANDLER (CONSOLIDATED)
+    // ----------------------------------------------
+    document.getElementById('property-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const user = getCurrentUser();
+        if (!user) {
+            alert('Please log in to add a property.');
+            window.location.href = 'login.html';
+            return;
+        }
+
+        const submitBtn = document.getElementById('submit-btn');
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        
+        let imageUrls = [];
+        let videoUrl = null;
+
+        try {
+            // --- File Upload Logic ---
+            submitBtn.textContent = 'Uploading... Please wait.';
+
+            const imageFiles = document.getElementById('images').files;
+            const videoFile = document.getElementById('video').files[0];
+
+            // Upload images in parallel
+            if (imageFiles.length > 0) {
+                const imageUploadPromises = Array.from(imageFiles).map(file => 
+                    uploadFileToCloudinary(file, 'image')
+                );
+                imageUrls = await Promise.all(imageUploadPromises);
+            }
+
+            // Upload video (if present)
+            if (videoFile) {
+                videoUrl = await uploadFileToCloudinary(videoFile, 'video');
+            }
+
+            // --- Fetch Owner Data ---
+            submitBtn.textContent = 'Fetching owner data...';
+            const ownerRef = doc(db, 'users', user.uid); 
+            const ownerSnap = await getDoc(ownerRef);
+            
+            let ownerName = 'Unknown Owner';
+            let ownerContact = null;
+            let ownerEmail = user.email;
+
+            if (ownerSnap.exists()) {
+                const ownerData = ownerSnap.data();
+                ownerName = ownerData.fullname || ownerName;
+                ownerContact = ownerData.phone || ownerData.contactPhone || null;
+            }
+            
+            // --- Build Property Object ---
+            submitBtn.textContent = 'Saving property...';
+            
+            const propertyData = {
+                title: document.getElementById('title').value,
+                type: document.getElementById('type').value,
+                rent: parseInt(document.getElementById('rent').value, 10),
+                bedrooms: parseInt(document.getElementById('bedrooms').value, 10),
+                
+                // Contact info from the form (if fields exist in HTML)
+                contactPhone: document.getElementById('phone')?.value || ownerContact, 
+                contactEmail: document.getElementById('email')?.value || ownerEmail,
+                
+                address: document.getElementById('address').value,
+                description: document.getElementById('description').value,
+                images: imageUrls,
+                video: videoUrl,
+                
+                // Owner details for seeker visibility
+                ownerId: user.uid,
+                ownerName: ownerName,
+                
+                createdAt: new Date().toISOString(),
+                status: 'active'
+            };
+
+            // --- Save to Firestore ---
+            await addDoc(collection(db, 'properties'), propertyData);
+            
+            alert('Property added successfully!');
+            window.location.href = 'my-properties.html';
+
+        } catch (error) {
+            console.error('Error adding property:', error);
+            // Display specific error for user, especially Cloudinary errors
+            alert('Failed to add property: ' + error.message);
+            
+        } finally {
+             // Reset button state regardless of success or failure
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        }
+    });
+
+    // Make logout globally accessible from the HTML if needed
+    window.logout = logout;
+</script>
+</body>
+</html>

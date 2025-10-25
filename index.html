@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RentHouse - Find Your Perfect Home</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h2><i class="fas fa-home"></i> RentHouse</h2>
+            </div>
+            <div class="nav-menu">
+                <a href="#home">Home</a>
+                <a href="seeker.html">Properties</a>
+                <a href="#about">About</a>
+                <a href="#contact">Contact</a>
+                <span id="user-welcome" style="display: none; color: #27ae60; font-weight: 600;"></span>
+                <a href="login.html" class="btn-login">Login</a>
+                <a href="register.html" class="btn-register">Register</a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-content">
+            <h1>Find Your Dream Rental Home</h1>
+            <p id="hero-subtitle">Search thousands of rental properties in your desired location</p>
+            
+            <!-- Search Bar -->
+            <div class="search-container">
+                <div class="search-box">
+                    <input type="text" id="location-search" placeholder="Enter location (city, area, pincode)">
+                    <button id="search-btn"><i class="fas fa-search"></i> Search</button>
+                </div>
+                <div class="filter-options">
+                    <select id="property-type">
+                        <option value="">Property Type</option>
+                        <option value="apartment">Apartment</option>
+                        <option value="house">House</option>
+                        <option value="villa">Villa</option>
+                    </select>
+                    <select id="rent-range">
+                        <option value="">Rent Range</option>
+                        <option value="0-10000">₹0 - ₹10,000</option>
+                        <option value="10000-25000">₹10,000 - ₹25,000</option>
+                        <option value="25000-50000">₹25,000 - ₹50,000</option>
+                        <option value="50000+">₹50,000+</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Welcome Message for New Users -->
+    <div id="welcome-message" class="welcome-banner" style="display: none;">
+        <div class="container">
+            <p><i class="fas fa-check-circle"></i> <span id="welcome-text"></span></p>
+            <button onclick="closeWelcomeBanner()" class="close-btn">×</button>
+        </div>
+    </div>
+
+    <!-- Properties Section -->
+    <section id="properties" class="properties-section">
+        <div class="container">
+            <h2>Featured Properties</h2>
+            <div id="properties-grid" class="properties-grid">
+                <div class="loading-properties">
+                    <i class="fas fa-spinner fa-spin"></i> Loading properties...
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 RentHouse. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Firebase Integration -->
+    <script type="module">
+        import { getCurrentUser, initializeAuth, getUserData, redirectToDashboard } from './js/firebase-auth.js';
+        import { getAllProperties } from './js/firebase-properties.js';
+        
+        let currentUser = null;
+        
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Initialize Firebase Auth
+            currentUser = await initializeAuth();
+            
+            // Update UI for logged-in users
+            await updateUIForUser();
+            
+            // Setup search functionality
+            setupHomepageSearch();
+            
+            // Load and display properties
+            await loadProperties();
+            
+            // Setup smooth scrolling
+            setupSmoothScrolling();
+            
+            // Check for welcome message
+            checkForWelcomeMessage();
+        });
+        
+        async function updateUIForUser() {
+            const loginBtn = document.querySelector('.btn-login');
+            const registerBtn = document.querySelector('.btn-register');
+            const userWelcome = document.getElementById('user-welcome');
+            const heroSubtitle = document.getElementById('hero-subtitle');
+            
+            if (currentUser) {
+                try {
+                    const userData = await getUserData();
+                    
+                    if (userData) {
+                        // Show user welcome message
+                        userWelcome.textContent = `Welcome, ${userData.fullname}!`;
+                        userWelcome.style.display = 'inline';
+                        
+                        // Update hero subtitle for logged-in users
+                        heroSubtitle.textContent = `Welcome back, ${userData.fullname}! Find your perfect rental home.`;
+                        
+                        // Update navigation buttons
+                        if (loginBtn) {
+                            loginBtn.textContent = 'Dashboard';
+                            loginBtn.href = '#';
+                            loginBtn.onclick = (e) => {
+                                e.preventDefault();
+                                redirectToDashboard();
+                            };
+                        }
+                        
+                        if (registerBtn) {
+                            registerBtn.textContent = 'Logout';
+                            registerBtn.href = '#';
+                            registerBtn.onclick = (e) => {
+                                e.preventDefault();
+                                handleLogout();
+                            };
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error getting user data:', error);
+                }
+            } else {
+                // Reset UI for non-logged users
+                userWelcome.style.display = 'none';
+                heroSubtitle.textContent = 'Search thousands of rental properties in your desired location';
+            }
+        }
+        
+        function setupHomepageSearch() {
+            const searchBtn = document.querySelector('#search-btn');
+            const locationSearch = document.querySelector('#location-search');
+            
+            if (searchBtn) {
+                searchBtn.addEventListener('click', performHomepageSearch);
+            }
+            
+            if (locationSearch) {
+                locationSearch.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        performHomepageSearch();
+                    }
+                });
+            }
+        }
+        
+        function performHomepageSearch() {
+            const location = document.getElementById('location-search').value;
+            const propertyType = document.getElementById('property-type').value;
+            const rentRange = document.getElementById('rent-range').value;
+            
+            if (!currentUser) {
+                alert('Please login to search properties');
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // Store search parameters
+            const searchParams = {
+                location,
+                propertyType,
+                rentRange
+            };
+            
+            localStorage.setItem('searchParams', JSON.stringify(searchParams));
+            
+            // Redirect to seeker dashboard
+            window.location.href = 'seeker.html';
+        }
+        
+        async function loadProperties() {
+            const propertiesGrid = document.getElementById('properties-grid');
+            
+            try {
+                const result = await getAllProperties();
+                
+                if (result.success && result.properties.length > 0) {
+                    displayProperties(result.properties.slice(0, 6)); // Show first 6
+                } else {
+                    // Show sample properties if none exist
+                    displaySampleProperties();
+                }
+            } catch (error) {
+                console.error('Error loading properties:', error);
+                displaySampleProperties();
+            }
+        }
+        
+        function displayProperties(properties) {
+            const propertiesGrid = document.getElementById('properties-grid');
+            
+            if (!propertiesGrid) return;
+            
+            propertiesGrid.innerHTML = properties.map(property => `
+                <div class="property-card">
+                    <div class="property-image" style="background-image: url('${property.images?.[0] || 'https://via.placeholder.com/300x200'}')">
+                        <div class="property-price">₹${property.rent?.toLocaleString() || 'N/A'}/month</div>
+                    </div>
+                    <div class="property-details">
+                        <h3>${property.title || 'Property'}</h3>
+                        <p class="property-location"><i class="fas fa-map-marker-alt"></i> ${property.address || 'Location'}</p>
+                        <div class="property-features">
+                            <span><i class="fas fa-bed"></i> ${property.bedrooms || 0} Bed</span>
+                            <span><i class="fas fa-home"></i> ${property.type || 'Property'}</span>
+                        </div>
+                        <div class="property-amenities">
+                            ${(property.amenities || []).slice(0, 3).map(amenity => `<span class="amenity-tag">${amenity}</span>`).join('')}
+                        </div>
+                        <button class="contact-btn" onclick="handleViewDetails('${property.id}')">
+                            View Details
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function displaySampleProperties() {
+            const sampleProperties = [
+                {
+                    id: 'sample1',
+                    title: "Modern 2BHK Apartment",
+                    type: "apartment",
+                    rent: 25000,
+                    bedrooms: 2,
+                    address: "MG Road, Bangalore, Karnataka",
+                    amenities: ["parking", "gym", "wifi"],
+                    images: ["https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?ixlib=rb-4.0.3&w=500"]
+                },
+                {
+                    id: 'sample2',
+                    title: "Spacious 3BHK Villa",
+                    type: "villa",
+                    rent: 45000,
+                    bedrooms: 3,
+                    address: "Koramangala, Bangalore, Karnataka",
+                    amenities: ["parking", "garden", "wifi"],
+                    images: ["https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&w=500"]
+                },
+                {
+                    id: 'sample3',
+                    title: "Cozy 1BHK Studio",
+                    type: "apartment",
+                    rent: 15000,
+                    bedrooms: 1,
+                    address: "HSR Layout, Bangalore, Karnataka",
+                    amenities: ["wifi", "gym"],
+                    images: ["https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?ixlib=rb-4.0.3&w=500"]
+                }
+            ];
+            
+            displayProperties(sampleProperties);
+        }
+        
+        function setupSmoothScrolling() {
+            const links = document.querySelectorAll('a[href^="#"]');
+            
+            links.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    const targetId = this.getAttribute('href').substring(1);
+                    const targetElement = document.getElementById(targetId);
+                    
+                    if (targetElement) {
+                        targetElement.scrollIntoView({
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+        }
+        
+        function checkForWelcomeMessage() {
+            // Check if user just registered or logged in
+            const urlParams = new URLSearchParams(window.location.search);
+            const welcome = urlParams.get('welcome');
+            const userName = urlParams.get('user');
+            
+            if (welcome && userName) {
+                showWelcomeBanner(decodeURIComponent(userName), welcome);
+                
+                // Clean up URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+        
+        function showWelcomeBanner(userName, type) {
+            const welcomeMessage = document.getElementById('welcome-message');
+            const welcomeText = document.getElementById('welcome-text');
+            
+            if (type === 'register') {
+                welcomeText.textContent = `Welcome to RentHouse, ${userName}! Your account has been created successfully.`;
+            } else {
+                welcomeText.textContent = `Welcome back, ${userName}! You have successfully logged in.`;
+            }
+            
+            welcomeMessage.style.display = 'block';
+            
+            // Auto hide after 5 seconds
+            setTimeout(() => {
+                closeWelcomeBanner();
+            }, 5000);
+        }
+        
+        // Global functions
+        window.handleViewDetails = function(propertyId) {
+            if (currentUser) {
+                window.location.href = 'seeker.html';
+            } else {
+                alert('Please login to view property details');
+                window.location.href = 'login.html';
+            }
+        };
+        
+        window.handleLogout = async function() {
+            if (confirm('Are you sure you want to logout?')) {
+                const { logout } = await import('./js/firebase-auth.js');
+                await logout();
+            }
+        };
+        
+        window.closeWelcomeBanner = function() {
+            const welcomeMessage = document.getElementById('welcome-message');
+            welcomeMessage.style.display = 'none';
+        };
+    </script>
+</body>
+</html>

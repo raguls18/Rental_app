@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Favorites - RentHouse</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css"> 
+    <link rel="stylesheet" href="css/seeker.css"> 
+    <link rel="stylesheet" href="css/favorites.css">
+</head>
+<body>
+    <header class="main-header">
+        <div class="container">
+            <div class="header-content">
+                <h1 class="logo"><i class="fas fa-home"></i> RentHouse</h1>
+                <nav class="main-nav">
+                    <a href="seeker.html"><i class="fas fa-search"></i> Search</a>
+                    <a href="favoritesseeker.html" class="active"><i class="fas fa-heart"></i> Favorites</a>
+                    <a href="seeker-profile.html" id="nav-profile-link"><i class="fas fa-user-circle"></i> Profile</a>
+                    <a href="#" id="nav-logout-btn" class="btn-logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    <a href="login.html" id="nav-login-link" style="display: none;"><i class="fas fa-sign-in-alt"></i> Login</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <section id="favorites-section" class="favorites-section">
+            <!-- Added header with stats and filter controls -->
+            <div class="favorites-header">
+                <div class="header-title">
+                    <h2><i class="fas fa-heart"></i> My Favorite Rentals</h2>
+                    <p id="favorites-count" class="favorites-count">0 properties saved</p>
+                </div>
+                <div class="filter-controls">
+                    <select id="sort-filter" class="sort-filter">
+                        <option value="newest">Newest First</option>
+                        <option value="price-low">Price: Low to High</option>
+                        <option value="price-high">Price: High to Low</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="loading-indicator" class="loading-indicator">
+                <div class="spinner"></div>
+                <p>Fetching your saved properties...</p>
+            </div>
+
+            <div id="empty-favorites" class="empty-favorites" style="display: none;">
+                <div class="empty-icon">
+                    <i class="far fa-heart"></i>
+                </div>
+                <h3>Your Favorites List is Empty</h3>
+                <p>Start searching and click the heart icon on any property to save it.</p>
+                <a href="seeker.html" class="btn-primary">
+                    <i class="fas fa-search"></i> Go to Search Page
+                </a>
+            </div>
+
+            <div id="favorites-grid" class="properties-grid">
+            </div>
+        </section>
+    </main>
+    
+    <script>
+        let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+
+        function toggleFavorite(propertyId, button) {
+            const index = favorites.indexOf(propertyId);
+            
+            if (index > -1) {
+                favorites.splice(index, 1);
+                button.querySelector('i').classList.remove('fas');
+                button.querySelector('i').classList.add('far');
+                button.classList.remove('active');
+                showNotification('Removed from favorites', 'error');
+
+                const card = button.closest('.property-card');
+                if (card) {
+                    card.style.opacity = '0';
+                    card.style.transform = 'scale(0.8)';
+                    setTimeout(() => {
+                        card.remove();
+                        updateFavoritesCount();
+                        if (document.getElementById('favorites-grid').children.length === 0) {
+                            document.getElementById('empty-favorites').style.display = 'block';
+                            document.getElementById('loading-indicator').style.display = 'none';
+                        }
+                    }, 300);
+                }
+
+            } else {
+                favorites.push(propertyId);
+                button.querySelector('i').classList.remove('far');
+                button.querySelector('i').classList.add('fas');
+                button.classList.add('active');
+                
+                button.style.transform = 'scale(1.3)';
+                setTimeout(() => { button.style.transform = 'scale(1)'; }, 200);
+                showNotification('Added to favorites!', 'success');
+            }
+            
+            localStorage.setItem('favorites', JSON.stringify(favorites));
+        }
+
+        function updateFavoritesCount() {
+            const count = document.getElementById('favorites-grid').children.length;
+            document.getElementById('favorites-count').textContent = `${count} ${count === 1 ? 'property' : 'properties'} saved`;
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed; top: 100px; right: 20px; 
+                background: ${type === 'success' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#ff6b6b'};
+                color: white; padding: 15px 25px; border-radius: 12px; 
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2); z-index: 10000; 
+                font-weight: 600; display: flex; align-items: center; gap: 10px;
+                animation: slideIn 0.3s ease;
+            `;
+            notification.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'times-circle'}"></i> ${message}`;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 2000);
+        }
+
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+            @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(400px); opacity: 0; } }
+        `;
+        document.head.appendChild(style);
+
+        window.handleViewDetails = function(propertyId) {
+            window.location.href = `property-details.html?id=${propertyId}`;
+        };
+
+        document.getElementById('sort-filter').addEventListener('change', function(e) {
+            const sortType = e.target.value;
+            const cards = Array.from(document.querySelectorAll('.property-card'));
+            
+            cards.sort((a, b) => {
+                const priceA = parseInt(a.dataset.price) || 0;
+                const priceB = parseInt(b.dataset.price) || 0;
+                
+                if (sortType === 'price-low') return priceA - priceB;
+                if (sortType === 'price-high') return priceB - priceA;
+                return 0;
+            });
+            
+            const grid = document.getElementById('favorites-grid');
+            cards.forEach(card => grid.appendChild(card));
+        });
+    </script>
+    
+    <script type="module" src="js/firebase-auth.js"></script>
+    <script type="module" src="js/favorites.js"></script>
+</body>
+</html>

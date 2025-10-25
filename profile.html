@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Profile – RentHouse</title>
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+</head>
+<body>
+  <div class="dashboard-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <i class="fas fa-home"></i>
+        <span>RentHouse</span>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="nav-link" data-target="search"><i class="fas fa-search"></i> Search</button>
+        <button class="nav-link" data-target="favorites"><i class="fas fa-heart"></i> Favorites</button>
+        <button class="nav-link active" data-target="profile"><i class="fas fa-user"></i> Profile</button>
+        <button class="nav-link" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="dashboard-header">
+        <h1>Your Profile</h1>
+        <div class="user-info">Welcome, <span id="user-name"></span></div>
+      </header>
+
+      <section id="profile" class="content-section active">
+        <div id="profile-details" class="profile-container">
+          <!-- Filled in by JS -->
+        </div>
+        <button id="edit-profile-btn" class="contact-btn">Edit Profile</button>
+      </section>
+    </main>
+  </div>
+
+  <script type="module">
+    import { requireAuth, getCurrentUser, getUserData, logout } from './js/firebase-auth.js';
+
+    document.addEventListener('DOMContentLoaded', initProfile);
+
+    async function initProfile() {
+      if (!requireAuth()) return;
+      const user = getCurrentUser();
+      if (!user) return location='login.html';
+
+      try {
+        const data = await getUserData();
+        if (!data) throw 'No data';
+        document.getElementById('user-name').textContent = data.fullname || 'User';
+        document.getElementById('profile-details').innerHTML = `
+          <p><strong>Name:</strong> ${data.fullname}</p>
+          <p><strong>Email:</strong> ${data.email}</p>
+          <p><strong>Phone:</strong> ${data.phone || 'N/A'}</p>
+          <p><strong>User Type:</strong> ${data.userType}</p>
+        `;
+      } catch (e) {
+        console.error('Error loading profile:', e);
+      }
+
+      // Sidebar nav
+      document.querySelectorAll('.nav-link').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          if (btn.id==='logout-btn') {
+            if (confirm('Logout?')) logout();
+            return;
+          }
+          const target=btn.dataset.target;
+          window.location=`seeker.html#${target}`;
+        });
+      });
+
+      // Edit Profile
+      document.getElementById('edit-profile-btn').addEventListener('click', ()=>{
+        alert('Edit profile feature coming soon.');
+      });
+    }
+  </script>
+</body>
+</html>

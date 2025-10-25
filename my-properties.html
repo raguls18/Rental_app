@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My Properties - RentHouse</title>
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+</head>
+<body>
+  <div class="dashboard-container">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2><i class="fas fa-home"></i> RentHouse</h2>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="owner-dashboard.html" class="nav-link">
+          <i class="fas fa-tachometer-alt"></i> Dashboard
+        </a>
+        <a href="my-properties.html" class="nav-link active">
+          <i class="fas fa-building"></i> My Properties
+        </a>
+        <a href="add-property.html" class="nav-link">
+          <i class="fas fa-plus"></i> Add Property
+        </a>
+        <a href="owner-profile.html" class="nav-link">
+          <i class="fas fa-user"></i> Profile
+        </a>
+        <a href="#" onclick="logout()" class="nav-link">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <header class="dashboard-header">
+        <h1>My Properties</h1>
+        <div class="header-actions">
+          <a href="add-property.html" class="btn-add">
+            <i class="fas fa-plus"></i> Add New Property
+          </a>
+        </div>
+      </header>
+
+      <section id="property-list-section" class="properties-grid">
+        <div class="loading">
+          <i class="fas fa-spinner fa-spin"></i> Loading properties...
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module">
+    import { initializeAuth, getCurrentUser, logout } from './js/firebase-auth.js';
+    import { db } from './js/firebase-config.js';
+    import { collection, query, where, getDocs, orderBy, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-firestore.js";
+
+    const propertyContainer = document.getElementById('property-list-section');
+
+    async function loadProperties() {
+      try {
+        await initializeAuth();
+        
+        const user = getCurrentUser();
+        if (!user) {
+          window.location.href = 'login.html';
+          return;
+        }
+
+        const q = query(
+          collection(db, 'properties'),
+          where('ownerId', '==', user.uid),
+          orderBy('createdAt', 'desc')
+        );
+        
+        const querySnapshot = await getDocs(q);
+        const properties = [];
+        
+        querySnapshot.forEach((doc) => {
+          properties.push({ id: doc.id, ...doc.data() });
+        });
+
+        displayProperties(properties);
+
+      } catch (error) {
+        console.error('Error loading properties:', error);
+        propertyContainer.innerHTML = `<p class="error">Error loading properties.</p>`;
+      }
+    }
+
+    function displayProperties(properties) {
+      if (properties.length === 0) {
+        propertyContainer.innerHTML = `
+          <div class="no-properties">
+            <i class="fas fa-home"></i>
+            <h3>No Properties Found</h3>
+            <p>You haven't added any properties yet.</p>
+            <a href="add-property.html" class="btn-add">Add Your First Property</a>
+          </div>`;
+        return;
+      }
+
+      propertyContainer.innerHTML = properties.map(prop => `
+        <div class="property-card" id="prop-${prop.id}">
+          <div class="property-image" style="background-image: url('${prop.images?.[0] || 'https://via.placeholder.com/400x300'}')">
+            <div class="property-price">₹${(prop.rent || 0).toLocaleString()}/month</div>
+            <div class="property-actions">
+              <button onclick="editProperty('${prop.id}')" class="btn-edit" title="Edit Property"><i class="fas fa-edit"></i></button>
+              <button onclick="deleteProperty('${prop.id}')" class="btn-delete" title="Delete Property"><i class="fas fa-trash"></i></button>
+            </div>
+          </div>
+          <div class="property-details">
+            <h3>${prop.title || 'Untitled Property'}</h3>
+            <p class="property-contact"><i class="fas fa-phone"></i> ${prop.contactPhone || 'N/A'}</p>
+            <p class="property-contact"><i class="fas fa-envelope"></i> ${prop.contactEmail || 'N/A'}</p>
+            <p class="property-location"><i class="fas fa-map-marker-alt"></i> ${prop.address || 'No address'}</p>
+            <div class="property-features">
+              <span><i class="fas fa-building"></i> ${prop.type || 'N/A'}</span>
+              <span><i class="fas fa-bed"></i> ${prop.bedrooms || 0} Beds</span>
+            </div>
+            <p class="property-description">${(prop.description || '').substring(0, 100)}${prop.description && prop.description.length > 100 ? '...' : ''}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    window.editProperty = function(propertyId) {
+      alert('Edit feature coming soon!');
+    };
+
+    window.deleteProperty = async function(propertyId) {
+      if (!confirm('Are you sure you want to permanently delete this property?')) {
+        return;
+      }
+      try {
+        const docRef = doc(db, 'properties', propertyId);
+        await deleteDoc(docRef);
+        alert('Property deleted successfully!');
+        loadProperties(); // Refresh the list
+      } catch (error) {
+        console.error('Error deleting property: ', error);
+        alert('Failed to delete property. Please try again.');
+      }
+    };
+
+    window.logout = logout;
+
+    document.addEventListener('DOMContentLoaded', loadProperties);
+  </script>
+</body>
+</html>
