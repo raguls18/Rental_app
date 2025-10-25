@@ -1,12 +1,7 @@
 {
   "buildCommand": "echo 'Static site - no build needed'",
   "outputDirectory": ".",
-  "framework": "static",
   "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/$1"
-    },
     {
       "source": "/property-details",
       "destination": "/property-details.html"
@@ -26,6 +21,10 @@
     {
       "source": "/owner-dashboard",
       "destination": "/owner-dashboard.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/$1"
     }
   ]
 }
